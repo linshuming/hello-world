@@ -10,6 +10,7 @@ import { ACLService } from '@delon/acl';
 import { NzIconService } from 'ng-zorro-antd/icon';
 import { ICONS } from '../../../style-icons';
 import { ICONS_AUTO } from '../../../style-icons-auto';
+import { APP_DATA } from './app-data';
 
 /**
  * Used for application startup
@@ -17,6 +18,7 @@ import { ICONS_AUTO } from '../../../style-icons-auto';
  */
 @Injectable()
 export class StartupService {
+  menuTree = APP_DATA;
   constructor(
     iconSrv: NzIconService,
     private menuService: MenuService,
@@ -25,41 +27,42 @@ export class StartupService {
     private titleService: TitleService,
     @Inject(DA_SERVICE_TOKEN) private tokenService: ITokenService,
     private httpClient: HttpClient,
-    private injector: Injector
+    private injector: Injector,
   ) {
     iconSrv.addIcon(...ICONS_AUTO, ...ICONS);
   }
 
   private viaHttp(resolve: any, reject: any): void {
-    zip(
-      this.httpClient.get('assets/tmp/app-data.json')
-    ).pipe(
-      catchError((res) => {
-        console.warn(`StartupService.load: Network request failed`, res);
-        resolve(null);
-        return [];
-      })
-    ).subscribe(([appData]) => {
-
-      // Application data
-      const res: any = appData;
-      // Application information: including site name, description, year
-      this.settingService.setApp(res.app);
-      // User information: including name, avatar, email address
-      this.settingService.setUser(res.user);
-      // ACL: Set the permissions to full, https://ng-alain.com/acl/getting-started
-      this.aclService.setFull(true);
-      // Menu data, https://ng-alain.com/theme/menu
-      this.menuService.add(res.menu);
-      // Can be set page suffix title, https://ng-alain.com/theme/title
-      this.titleService.suffix = res.app.name;
-    },
-    () => { },
-    () => {
-      resolve(null);
-    });
+    zip(this.httpClient.get('assets/tmp/app-data.json'))
+      .pipe(
+        catchError((res) => {
+          console.warn(`StartupService.load: Network request failed`, res);
+          resolve(null);
+          return [];
+        }),
+      )
+      .subscribe(
+        ([appData]) => {
+          // Application data
+          const res: any = appData;
+          // Application information: including site name, description, year
+          this.settingService.setApp(res.app);
+          // User information: including name, avatar, email address
+          this.settingService.setUser(res.user);
+          // ACL: Set the permissions to full, https://ng-alain.com/acl/getting-started
+          this.aclService.setFull(true);
+          // Menu data, https://ng-alain.com/theme/menu
+          this.menuService.add(res.menu);
+          // Can be set page suffix title, https://ng-alain.com/theme/title
+          this.titleService.suffix = res.app.name;
+        },
+        () => {},
+        () => {
+          resolve(null);
+        },
+      );
   }
-  
+
   private viaMock(resolve: any, reject: any): void {
     // const tokenData = this.tokenService.get();
     // if (!tokenData.token) {
@@ -68,15 +71,17 @@ export class StartupService {
     //   return;
     // }
     // mock
+    const res: any = this.menuTree;
+
     const app: any = {
       name: `ng-alain`,
-      description: `Ng-zorro admin panel front-end framework`
+      description: `Ng-zorro admin panel front-end framework`,
     };
     const user: any = {
       name: 'Admin',
       avatar: './assets/tmp/img/avatar.jpg',
       email: 'cipchk@qq.com',
-      token: '123456789'
+      token: '123456789',
     };
     // Application information: including site name, description, year
     this.settingService.setApp(app);
@@ -85,19 +90,22 @@ export class StartupService {
     // ACL: Set the permissions to full, https://ng-alain.com/acl/getting-started
     this.aclService.setFull(true);
     // Menu data, https://ng-alain.com/theme/menu
-    this.menuService.add([
-      {
-        text: 'Main',
-        group: true,
-        children: [
-          {
-            text: 'Dashboard',
-            link: '/dashboard',
-            icon: { type: 'icon', value: 'appstore' }
-          }
-        ]
-      }
-    ]);
+    this.menuService.add(
+      // [
+      //   {
+      //     text: 'Main',
+      //     group: true,
+      //     children: [
+      //       {
+      //         text: 'Dashboard',
+      //         link: '/dashboard',
+      //         icon: { type: 'icon', value: 'appstore' }
+      //       }
+      //     ]
+      //   }
+      // ]
+      res.menu,
+    );
     // Can be set page suffix title, https://ng-alain.com/theme/title
     this.titleService.suffix = app.name;
 
@@ -112,7 +120,6 @@ export class StartupService {
       // this.viaHttp(resolve, reject);
       // mock：请勿在生产环境中这么使用，viaMock 单纯只是为了模拟一些数据使脚手架一开始能正常运行
       this.viaMock(resolve, reject);
-
     });
   }
 }
